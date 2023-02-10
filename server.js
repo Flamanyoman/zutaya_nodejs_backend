@@ -61,7 +61,7 @@ app.use(
 
 // middleware to allow cookies to be set cross origin
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://zutaya.onrender.com');
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000');
   res.setHeader(
     'Access-Control-Allow-Methods',
     'GET, POST, OPTIONS, PUT, PATCH, DELETE'
@@ -91,9 +91,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // routes
-app.use('/', pageRoute);
-app.use('/', userRoute);
-app.use('/', ticketRoute);
+app.use('/api', pageRoute);
+app.use('/api', userRoute);
+app.use('/api', ticketRoute);
 
 // error handler middleware
 const errorHandler = (err, req, res, next) => {
