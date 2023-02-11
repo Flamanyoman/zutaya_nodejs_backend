@@ -20,16 +20,16 @@ const app = express();
 dotenv.config();
 
 // calling environment variables
-const PORT = process.env.PORT || 8080;
-const dbURI = process.env.dbURI;
+const port = process.env.PORT || 8080;
+const dburi = process.env.dbURI;
 const secret = process.env.SECRET;
 
 // connect db and listen for express on dzedicated port
 // connect mongoose and initialize express listen
 mongoose
-  .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(dburi, { useNewUrlParser: true, useUnifiedTopology: true })
   .then((result) => {
-    app.listen(PORT, console.log(`server is listening on port ${PORT}`));
+    app.listen(port, console.log(`server is listening on port ${port}`));
     console.log('Db connected as well');
   })
   .catch((err) => console.log(err));
@@ -45,7 +45,10 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: ['http://localhost:3000', 'https://zutaya.onrender.com'],
+    origin: [
+      'http://localhost:3000',
+      'https://https-zutaya-api-onrender-com-api.onrender.com',
+    ],
     credentials: true,
     optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
   })
@@ -62,7 +65,10 @@ app.use(
 
 // middleware to allow cookies to be set cross origin
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://zutaya.onrender.com');
+  res.setHeader(
+    'Access-Control-Allow-Origin',
+    'https://https-zutaya-api-onrender-com-api.onrender.com'
+  );
   res.setHeader(
     'Access-Control-Allow-Methods',
     'GET, POST, OPTIONS, PUT, PATCH, DELETE'
