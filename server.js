@@ -45,10 +45,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: [
-      'http://localhost:3000',
-      'https://https-zutaya-api-onrender-com-api.onrender.com',
-    ],
+    origin: ['http://localhost:3000', 'https://zutaya.onrender.com'],
     credentials: true,
     optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
   })
@@ -65,10 +62,7 @@ app.use(
 
 // middleware to allow cookies to be set cross origin
 app.use((req, res, next) => {
-  res.setHeader(
-    'Access-Control-Allow-Origin',
-    'https://https-zutaya-api-onrender-com-api.onrender.com'
-  );
+  res.setHeader('Access-Control-Allow-Origin', 'https://zutaya.onrender.com');
   res.setHeader(
     'Access-Control-Allow-Methods',
     'GET, POST, OPTIONS, PUT, PATCH, DELETE'
