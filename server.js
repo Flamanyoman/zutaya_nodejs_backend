@@ -31,7 +31,8 @@ mongoose
   .then((result) => {
     app.listen(PORT, console.log(`server is listening on port ${PORT}`));
     console.log('Db connected as well');
-  });
+  })
+  .catch((err) => console.log(err));
 
 /* Set Security Configs */
 // app.use(helmet());
