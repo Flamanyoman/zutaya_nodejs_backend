@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
-    socialId: { type: String, required: true },
+    socialId: { type: String, required: true, unique: true },
 
     socialMedia: { type: String, required: true, default: 'Twitter' },
 
@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema(
 
     profilePic: { type: String },
 
-    email: { type: String },
+    email: { type: String, unique: true },
 
     accountType: { type: String, required: true, default: 'Guest' },
 

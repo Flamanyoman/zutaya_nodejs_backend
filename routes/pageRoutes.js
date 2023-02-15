@@ -273,7 +273,7 @@ pageRoute.get('/create-event', (req, res) => {
 });
 
 // guests component
-pageRoute.get('guests', (req, res) => {
+pageRoute.get('/guests', (req, res) => {
   const title = 'guests';
 
   Page.findOne({ title }).then((data) => {
@@ -282,10 +282,10 @@ pageRoute.get('guests', (req, res) => {
 });
 
 // ticket component
-pageRoute.get('ticket:id', (req, res) => {
-  const title = req.params.id;
+pageRoute.get('/ticket/:id', (req, res) => {
+  const id = req.params.id;
 
-  Page.findOne({ title }).then((data) => {
+  Event.findOne({ _id: id }).then((data) => {
     res.status(200).json(data);
   });
 });

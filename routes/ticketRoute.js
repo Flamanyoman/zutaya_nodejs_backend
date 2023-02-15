@@ -662,7 +662,7 @@ schedule.scheduleJob('0 0 */7 * *', () => {
 });
 
 // function runs every 1am: refreshes dates all events that their dates have passed but need to be repeated weekly
-schedule.scheduleJob('0 1 * * *', () => {
+schedule.scheduleJob('0 1 */7 * *', () => {
   Event.find({ repeat: 'Weekly' }, { dateStamp: 1, _id: 1 }).then((events) => {
     events.map((event) => {
       if (moment(event.dateStamp).isBefore(new Date())) {

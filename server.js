@@ -41,8 +41,7 @@ mongoose
 // middleware
 app.use(express.json());
 
-// cross origin with local host 3000 only
-
+// cross origin with local host 3000 and https://zutaya.com
 app.use(
   cors({
     origin: ['http://localhost:3000', 'https://zutaya.onrender.com'],
