@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import User from '../Database Models/userModel.js';
 import moment from 'moment/moment.js';
-import schedule, { RecurrenceRule } from 'node-schedule';
+import schedule from 'node-schedule';
 
 // initialize ticketRoute
 const ticketRoute = express.Router();
@@ -496,6 +496,10 @@ ticketRoute.get('/dashboard/ticket/:id', (req, res) => {
   const findTicket = (user) => {
     // find the ticket and populate the host.hostId with host name
     Event.findOne({ _id: id })
+      .populate({
+        path: 'guests.id',
+        select: ['name', 'profilePic', 'accountType'],
+      })
       .then((data) => {
         if (data.host.hostId.toHexString() == user._id) {
           res.status(200).json({ data });
@@ -636,13 +640,187 @@ ticketRoute.get('/dashboard/ticket/:id', (req, res) => {
   }
 });
 
+// code block to purchase a ticket
+ticketRoute.post('/ticket/purchase', (req, res) => {
+  // check is user is logged in
+  const { _id, amount, ticket, secret, date } = req.body;
+
+  let totalTicket = 0;
+
+  ticket.map((tick, i) => {
+    totalTicket = tick + totalTicket;
+  });
+
+  // get cookies from front end client
+  const accessToken = req.cookies.accessToken;
+  const refreshToken = req.cookies.refreshToken;
+
+  // id of front end client]
+  let id;
+
+  // function to purchase ticket
+  const purchaseTicket = (data) => {
+    let guestInfo = { id: data._id, name: data.name, secret, ticket };
+
+    // update data base of event purchased
+    Event.findOneAndUpdate(
+      { _id },
+      {
+        $push: {
+          guests: guestInfo,
+        },
+        $inc: { totalSoldTickets: totalTicket, 'income.realized': amount },
+      }
+    )
+      .then((result) => {
+        // update database of user who purchased (guest)
+        let eventInfo = { id: result._id, secret, date };
+
+        User.findOneAndUpdate(
+          { _id: data._id },
+          {
+            $push: { eventsAttended: eventInfo },
+          },
+          { new: true }
+        )
+          .then((info) => {
+            // update database of user who hosted (host)
+            User.findOneAndUpdate(
+              { _id: result.host.hostId },
+              {
+                $inc: { 'income.realized': amount },
+                $push: { guestList: data._id },
+              }
+            )
+              .then(() => {
+                res.status(200).json(info);
+              })
+              .catch((err) => res.status(500).json({ error: true }));
+          })
+          .catch((err) => res.status(500).json({ error: true }));
+      })
+      .catch((err) => res.status(500).json({ error: true }));
+  };
+
+  // // verify access token cookie first, only access token can be used to create a new ticket
+  if (accessToken) {
+    jwt.verify(accessToken, access_jwt_secret, (err, payLoad) => {
+      if (err) {
+        jwt.verify(refreshToken, refresh_jwt_secret, (err, payLoad) => {
+          if (err) {
+            res.status(401).json({
+              authError: true,
+              err,
+              message: 'Ensure you are logged in',
+            });
+          } else {
+            id = payLoad.id;
+          }
+
+          if (id) {
+            // generate new accessToken
+            const newAccessToken = jwt.sign({ id }, access_jwt_secret, {
+              expiresIn: '25m',
+            });
+
+            // generate new refreshToken
+            const newRefreshToken = jwt.sign({ id }, refresh_jwt_secret, {
+              expiresIn: '2w',
+            });
+
+            res.cookie('accessToken', newAccessToken);
+
+            res.cookie('refreshToken', newRefreshToken);
+
+            User.findOne({ _id: payLoad.id })
+              .then((data) => {
+                // purchase event
+                purchaseTicket(data);
+              })
+              .catch((err) =>
+                res.status(401).json({
+                  authError: true,
+                  err,
+                  message: 'Ensure you are logged in 1',
+                })
+              );
+          }
+        });
+      } else {
+        User.findOne({ _id: payLoad.id })
+          .then((data) => {
+            // purchase event
+            purchaseTicket(data);
+          })
+          .catch((err) =>
+            res.status(401).json({
+              authError: true,
+              err,
+              message: 'Ensure you are logged in 2',
+            })
+          );
+      }
+    });
+  }
+
+  // no access token hence verify refresh token
+  if (!accessToken && refreshToken) {
+    jwt.verify(refreshToken, refresh_jwt_secret, (err, payLoad) => {
+      if (err) {
+        res.status(401).json({
+          authError: true,
+          err,
+          message: 'Ensure you are logged in 3',
+        });
+      } else {
+        id = payLoad.id;
+      }
+
+      if (id) {
+        // generate new accessToken
+        const newAccessToken = jwt.sign({ id }, access_jwt_secret, {
+          expiresIn: '25m',
+        });
+
+        // generate new refreshToken
+        const newRefreshToken = jwt.sign({ id }, refresh_jwt_secret, {
+          expiresIn: '2w',
+        });
+
+        res.cookie('accessToken', newAccessToken);
+
+        res.cookie('refreshToken', newRefreshToken);
+
+        User.findOne({ _id: payLoad.id })
+          .then((data) => {
+            // purchase event
+            purchaseTicket(data);
+          })
+          .catch((err) =>
+            res.status(401).json({
+              authError: true,
+              err,
+              message: 'Ensure you are logged in 4',
+            })
+          );
+      }
+    });
+  }
+
+  if (!accessToken && !refreshToken) {
+    res
+      .status(401)
+      .json({ authError: true, err, message: 'Ensure you are logged in 5' });
+  }
+});
+
 // functions that determine the how tickets behave based in the time of the event and frequency
 // using libraries such:
 // * scheduler: which manipulates the events database periodically
 // * moment: which is used to set, read and manipulate the dates
 
 // function runs every 12am: sets all events that their dates have passed to datePassed:true
-schedule.scheduleJob('0 0 */7 * *', () => {
+schedule.scheduleJob('0 0 0 ? * * *', () => {
   Event.find(
     { repeat: 'Single', datePassed: false },
     {
@@ -650,6 +828,8 @@ schedule.scheduleJob('0 0 */7 * *', () => {
       _id: 1,
     }
   ).then((events) => {
+    console.log('ran daily cron');
+
     events.map((event) => {
       if (moment(event.dateStamp).isBefore(new Date())) {
         Event.findOneAndUpdate(
@@ -662,28 +842,36 @@ schedule.scheduleJob('0 0 */7 * *', () => {
 });
 
 // function runs every 1am: refreshes dates all events that their dates have passed but need to be repeated weekly
-schedule.scheduleJob('0 1 */7 * *', () => {
-  Event.find({ repeat: 'Weekly' }, { dateStamp: 1, _id: 1 }).then((events) => {
-    events.map((event) => {
-      if (moment(event.dateStamp).isBefore(new Date())) {
-        Event.findOneAndUpdate(
-          { _id: event._id },
-          {
-            $set: {
-              dateStamp: moment(event.dateStamp, 'YYYY-MM-DD;HH:mm:ss')
-                .add(1, 'W')
-                .format('YYYY-MM-DD;HH:mm:ss'),
-            },
-          }
-        );
-      }
-    });
-  });
+schedule.scheduleJob('*0 0 1 ? * * *', () => {
+  Event.find({ repeat: 'Weekly' }, { dateStamp: 1, _id: 1 })
+    .then((events) => {
+      console.log('ran weekly cron');
+
+      events.map((event) => {
+        if (moment(event.dateStamp).isBefore(new Date())) {
+          Event.findOneAndUpdate(
+            { _id: event._id },
+            {
+              $set: {
+                dateStamp: moment(event.dateStamp, 'YYYY-MM-DD;HH:mm:ss')
+                  .add(1, 'W')
+                  .format('YYYY-MM-DD;HH:mm:ss'),
+              },
+            }
+          )
+            .then()
+            .catch((err) => console.log(err));
+        }
+      });
+    })
+    .catch((err) => console.log(err));
 });
 
 // function runs every 2am refreshes dates all events that their dates have passed but need to be repeated monthly
-schedule.scheduleJob('0 2 * * *', () => {
+schedule.scheduleJob('0 0 2 ? * * *', () => {
   Event.find({ repeat: 'Monthly' }, { dateStamp: 1, _id: 1 }).then((events) => {
+    console.log('ran monthly cron');
+
     events.map((event) => {
       if (moment(event.dateStamp).isBefore(new Date())) {
         Event.findOneAndUpdate(

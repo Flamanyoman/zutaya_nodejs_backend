@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema(
 
     profilePic: { type: String },
 
-    email: { type: String, unique: true },
+    email: { type: String },
 
     accountType: { type: String, required: true, default: 'Guest' },
 
@@ -18,7 +18,13 @@ const userSchema = new mongoose.Schema(
 
     bank: { type: String },
 
-    eventsAttended: { type: [mongoose.Types.ObjectId], ref: 'Event' },
+    eventsAttended: [
+      {
+        id: { type: mongoose.Types.ObjectId, ref: 'Event' },
+        secret: { type: String },
+        date: { type: Date },
+      },
+    ],
 
     eventsHosted: { type: [mongoose.Types.ObjectId], ref: 'Event' },
 
@@ -29,17 +35,9 @@ const userSchema = new mongoose.Schema(
 
     expectedGuests: { type: Number },
 
-    guestList: { type: [mongoose.Types.ObjectId], ref: 'User' },
+    guestList: [{ type: [mongoose.Types.ObjectId], ref: 'User' }],
 
     totalAvailableTickets: { type: Number },
-
-    pendingEvents: [
-      { eventName: { type: String } },
-      { qr: { type: Number } },
-      { timeStamp: { type: Date } },
-    ],
-
-    refreshToken: { type: String },
   },
   { timestamps: true }
 );

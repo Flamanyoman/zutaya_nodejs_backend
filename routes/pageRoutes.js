@@ -51,7 +51,17 @@ pageRoute.get('/auth', (req, res) => {
             User.findOne({ _id: payLoad.id })
               .populate({
                 path: 'eventsAttended',
-                select: ['eventName', 'dateStamp', 'timeStamp', 'org'],
+                populate: {
+                  path: 'id',
+                  select: [
+                    'eventName',
+                    'dateStamp',
+                    'timeStamp',
+                    'org',
+                    'host',
+                    'profilePic',
+                  ],
+                },
               })
               .populate({
                 path: 'eventsHosted',
@@ -67,7 +77,7 @@ pageRoute.get('/auth', (req, res) => {
               })
               .populate({
                 path: 'guestList',
-                select: ['socialMedia', 'name', 'accountType'],
+                select: ['socialMedia', 'name', 'accountType', 'profilePic'],
               })
               .then((data) => {
                 res.status(200).json(data);
@@ -81,7 +91,17 @@ pageRoute.get('/auth', (req, res) => {
         User.findOne({ _id: payLoad.id })
           .populate({
             path: 'eventsAttended',
-            select: ['eventName', 'dateStamp', 'timeStamp', 'org'],
+            populate: {
+              path: 'id',
+              select: [
+                'eventName',
+                'dateStamp',
+                'timeStamp',
+                'org',
+                'host',
+                'profilePic',
+              ],
+            },
           })
           .populate({
             path: 'eventsHosted',
@@ -136,7 +156,17 @@ pageRoute.get('/auth', (req, res) => {
         User.findOne({ _id: payLoad.id })
           .populate({
             path: 'eventsAttended',
-            select: ['eventName', 'dateStamp', 'timeStamp', 'org'],
+            populate: {
+              path: 'id',
+              select: [
+                'eventName',
+                'dateStamp',
+                'timeStamp',
+                'org',
+                'host',
+                'profilePic',
+              ],
+            },
           })
           .populate({
             path: 'eventsHosted',
@@ -152,7 +182,7 @@ pageRoute.get('/auth', (req, res) => {
           })
           .populate({
             path: 'guestList',
-            select: ['socialMedia', 'name', 'accountType'],
+            select: ['socialMedia', 'name', 'accountType', 'profilePic'],
           })
           .then((data) => res.status(200).json(data))
           .catch((err) => {
@@ -203,7 +233,6 @@ pageRoute.post('/events', (req, res) => {
         res.status(200).json(data);
       })
       .catch((err) => {
-        console.log(err);
         res.status(500).json(err);
       });
   };

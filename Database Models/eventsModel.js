@@ -90,9 +90,16 @@ const eventSchema = new mongoose.Schema(
     tickets: { required: true, type: Array },
 
     guests: [
-      { name: { type: String } },
-      { secret: { type: String } },
-      { ticket: [{ name: { type: String } }, { number: { type: Number } }] },
+      {
+        id: {
+          type: mongoose.Types.ObjectId,
+          required: true,
+          ref: 'User',
+        },
+        name: { type: String },
+        secret: { type: String, unique: true },
+        ticket: [{ type: Number }],
+      },
     ],
 
     totalAvailableTickets: { type: Number, required: true, default: 0 },
