@@ -4,9 +4,11 @@ const userSchema = new mongoose.Schema(
   {
     socialId: { type: String, required: true, unique: true },
 
-    socialMedia: { type: String, required: true, default: 'Twitter' },
+    socialMedia: { type: String, required: true, default: 'Email' },
 
-    name: { type: String, required: true },
+    name: { type: String, required: true, unique: true },
+
+    password: { type: String },
 
     profilePic: { type: String },
 

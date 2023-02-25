@@ -2,6 +2,7 @@
 import express from 'express';
 import User from '../Database Models/userModel.js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 
 const userRoute = express.Router();
@@ -17,70 +18,137 @@ const refresh_jwt_secret = process.env.REFRESH_JWT_SECRET;
 
 // login
 userRoute.post('/login', (req, res) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
 
   User.findOne({ socialId: email }).then((data) => {
     if (data) {
-      // access token expires within 25minutes
-      const accessToken = jwt.sign({ id: data._id }, access_jwt_secret, {
-        expiresIn: '25m',
-      });
+      bcrypt.compare(password, data.password, (err, result) => {
+        if (err) {
+          console.log(err);
+          res.status(500).json({ error: true, message: 'An error occured' });
+          return;
+        }
 
-      // refresh token expires after 2 weeks
-      const refreshToken = jwt.sign({ id: data._id }, refresh_jwt_secret, {
-        expiresIn: '2w',
-      });
+        if (!result) {
+          console.log('not correct');
+          res
+            .status(401)
+            .json({ error: true, message: 'Email or password incorrect' });
+          return;
+        }
 
-      // send access token cookie which expires in 26 minutes
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        maxAge: 1000 * 60 * 26,
-      });
+        // access token expires within 25minutes
+        const accessToken = jwt.sign({ id: data._id }, access_jwt_secret, {
+          expiresIn: '25m',
+        });
 
-      // send refresh token cookie which expires in 2weeks minutes
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24 * 14,
-      });
+        // refresh token expires after 2 weeks
+        const refreshToken = jwt.sign({ id: data._id }, refresh_jwt_secret, {
+          expiresIn: '2w',
+        });
 
-      res.status(200).json({ data });
+        // send access token cookie which expires in 26 minutes
+        res.cookie('accessToken', accessToken, {
+          httpOnly: true,
+          maxAge: 1000 * 60 * 26,
+        });
+
+        // send refresh token cookie which expires in 2weeks minutes
+        res.cookie('refreshToken', refreshToken, {
+          httpOnly: true,
+          maxAge: 1000 * 60 * 60 * 24 * 14,
+        });
+
+        res.status(200).json({ data });
+      });
     } else {
-      res.status(404).json({ error: true, email: email });
+      res
+        .status(401)
+        .json({ error: true, message: 'Email not found, create an account' });
     }
   });
 });
 
 // sign up
 userRoute.post('/signup', (req, res) => {
-  const { email } = req.body;
+  const { name, email, password } = req.body;
 
-  const newUser = new User({ socialId: email, name: email });
+  User.findOne({ socialId: email })
+    .then((data) => {
+      if (data) {
+        res.status(401).json({ error: true, message: 'Email already exists' });
+      } else {
+        bcrypt.genSalt(10, (err, salt) => {
+          if (err) {
+            console.log(err);
+            res.status(500).json({ error: true, message: 'An error occured' });
+            return;
+          }
 
-  newUser.save().then((data) => {
-    // access token expires within 25minutes
-    const accessToken = jwt.sign({ id: data._id }, access_jwt_secret, {
-      expiresIn: '25m',
-    });
+          bcrypt.hash(password, salt, (err, hash) => {
+            if (err) {
+              console.log(err);
+              res
+                .status(500)
+                .json({ error: true, message: 'An error occured' });
+              return;
+            }
 
-    // refresh token expires after 2 weeks
-    const refreshToken = jwt.sign({ id: data._id }, refresh_jwt_secret, {
-      expiresIn: '2w',
-    });
+            const newUser = new User({
+              socialId: email,
+              name,
+              email,
+              password: hash,
+            });
 
-    // send access token cookie which expires in 26 minutes
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      maxAge: 1000 * 60 * 26,
-    });
+            newUser
+              .save()
+              .then((data) => {
+                // access token expires within 25minutes
+                const accessToken = jwt.sign(
+                  { id: data._id },
+                  access_jwt_secret,
+                  {
+                    expiresIn: '25m',
+                  }
+                );
 
-    // send refresh token cookie which expires in 2weeks minutes
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 14,
-    });
+                // refresh token expires after 2 weeks
+                const refreshToken = jwt.sign(
+                  { id: data._id },
+                  refresh_jwt_secret,
+                  {
+                    expiresIn: '2w',
+                  }
+                );
 
-    res.status(200).json({ success: true, data });
-  });
+                // send access token cookie which expires in 26 minutes
+                res.cookie('accessToken', accessToken, {
+                  httpOnly: true,
+                  maxAge: 1000 * 60 * 26,
+                });
+
+                // send refresh token cookie which expires in 2weeks minutes
+                res.cookie('refreshToken', refreshToken, {
+                  httpOnly: true,
+                  maxAge: 1000 * 60 * 60 * 24 * 14,
+                });
+
+                res.status(200).json({ success: true, data });
+              })
+              .catch((err) =>
+                res.status(401).json({
+                  error: true,
+                  message: 'User name or Email already exists',
+                })
+              );
+          });
+        });
+      }
+    })
+    .catch((err) =>
+      res.status(401).json({ error: true, message: 'Email already exists' })
+    );
 });
 
 userRoute.post('/host', (req, res) => {
