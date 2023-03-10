@@ -24,13 +24,11 @@ userRoute.post('/login', (req, res) => {
     if (data) {
       bcrypt.compare(password, data.password, (err, result) => {
         if (err) {
-          console.log(err);
           res.status(500).json({ error: true, message: 'An error occured' });
           return;
         }
 
         if (!result) {
-          console.log('not correct');
           res
             .status(401)
             .json({ error: true, message: 'Email or password incorrect' });
@@ -80,14 +78,12 @@ userRoute.post('/signup', (req, res) => {
       } else {
         bcrypt.genSalt(10, (err, salt) => {
           if (err) {
-            console.log(err);
             res.status(500).json({ error: true, message: 'An error occured' });
             return;
           }
 
           bcrypt.hash(password, salt, (err, hash) => {
             if (err) {
-              console.log(err);
               res
                 .status(500)
                 .json({ error: true, message: 'An error occured' });
@@ -159,13 +155,12 @@ userRoute.post('/host', (req, res) => {
     { accountType: 'Host', accountNumber, bank }
   )
     .then((data) => {
-      res.status(200).json({ success: true, data });
+      res.status(200).json(data);
     })
     .catch((err) => res.status(500).json({ error: 'Internal server' }));
 });
 
 // logout function
-
 userRoute.get('/logout', (req, res) => {
   res.clearCookie('accessToken');
   res.clearCookie('refreshToken');
